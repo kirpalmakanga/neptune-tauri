@@ -1,0 +1,44 @@
+.fade {
+    &-enter-active,
+    &-exit-active {
+        transition: opacity 0.15s;
+    }
+    &-enter,
+    &-exit-to {
+        opacity: 0;
+    }
+}
+
+.slide {
+    &-up {
+        &-enter-active,
+        &-exit-active {
+            transition: transform 0.15s;
+        }
+        &-enter,
+        &-exit-to {
+            transform: translateY(100%);
+        }
+    }
+
+    &-left {
+        &-enter-active,
+        &-exit-active {
+            transition: transform 0.15s;
+        }
+        &-enter,
+        &-exit-to {
+            transform: translateX(100%);
+        }
+    }
+}
+
+.app-region {
+    &-drag {
+        -webkit-app-region: drag;
+    }
+
+    &-no-drag {
+        -webkit-app-region: no-drag;
+    }
+}

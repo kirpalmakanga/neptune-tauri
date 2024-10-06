@@ -15,6 +15,10 @@ export default defineConfig({
                     200: '#b4b6c7',
                     100: '#cdced9'
                 }
+            },
+            fontFamily: {
+                primary: ['Open Sans', 'sans-serif'],
+                secondary: ['Montserrat', 'sans-serif']
             }
         }
     }

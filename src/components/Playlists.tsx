@@ -22,7 +22,7 @@ const Playlists: Component = () => {
     };
 
     return (
-        <header class="flex flex-col w-xs bg-primary-800">
+        <header class="flex flex-col w-xs bg-primary-800 font-secondary">
             <div class="flex gap-3 justify-between items-center font-bold p-3">
                 <h2 class="text-primary-100">Playlists</h2>
 

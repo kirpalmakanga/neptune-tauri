@@ -1,5 +1,9 @@
+import { listen } from '@tauri-apps/api/event';
+import { readDir, BaseDirectory } from '@tauri-apps/api/fs';
+import { appWindow } from '@tauri-apps/api/window';
 import { createSignal, ParentComponent, Show } from 'solid-js';
 import { Transition } from 'solid-transition-group';
+import { parseWebStream } from 'music-metadata';
 
 import Icon from './Icon';
 
@@ -7,16 +11,17 @@ interface Props {
     onDropFiles: (files: Track[]) => void;
 }
 
-const readEntriesPromise = async (
+async function readEntriesPromise(
     directoryReader: FileSystemDirectoryReader
-): Promise<FileSystemEntry[]> =>
-    new Promise((resolve, reject) =>
+): Promise<FileSystemEntry[]> {
+    return new Promise((resolve, reject) =>
         directoryReader.readEntries(resolve, reject)
     );
+}
 
-const readDirectoryEntries = async (
+async function readDirectoryEntries(
     directoryReader: FileSystemDirectoryReader
-) => {
+) {
     let entries = [];
 
     let readEntries = await readEntriesPromise(directoryReader);
@@ -27,11 +32,9 @@ const readDirectoryEntries = async (
     }
 
     return entries;
-};
+}
 
-const getAllFileEntries = async (
-    dataTransferItemList: DataTransferItemList
-) => {
+async function getAllFileEntries(dataTransferItemList: DataTransferItemList) {
     /* TODO: refacto with proper recursion */
     let fileEntries: FileSystemFileEntry[] = [];
 
@@ -60,36 +63,99 @@ const getAllFileEntries = async (
     }
 
     return fileEntries;
-};
+}
 
-const getFileFromEntry = (entry: FileSystemFileEntry): Promise<File> =>
-    new Promise((resolve, reject) => entry.file(resolve, reject));
+function getFileFromEntry(entry: FileSystemFileEntry): Promise<File> {
+    return new Promise((resolve, reject) => entry.file(resolve, reject));
+}
+
+async function getFileMetadata(filePath: string): Track {
+    const { body: fileStream } = await fetch(filePath);
+    const {
+        common: {
+            album,
+            albumartist: albumArtists,
+            artist: artists,
+            disk: { no: discNumber, of: discCount },
+            genre,
+            picture: [
+                { data: pictureBuffer, format: pictureFormat } = {
+                    data: null,
+                    format: null
+                }
+            ] = [],
+            title,
+            track: { no: trackNumber },
+            year
+        },
+        format: { duration, codec }
+    } = await parseWebStream(fileStream);
+
+    return {
+        id: uuid(),
+        // title: title || path.parse(filePath).name, // TODO: récupérer le nom du fichier
+        title,
+        artists,
+        albumArtists,
+        album,
+        genre: genre ? genre.join(' ').trim() : '',
+        year,
+        duration,
+        trackNumber,
+        discNumber,
+        discCount,
+        cover: pictureBuffer
+            ? `data:${pictureFormat};base64,${pictureBuffer.toString('base64')}`
+            : '',
+        codec
+    };
+}
 
 const FileDrop: ParentComponent<Props> = (props) => {
     const [isDraggedOver, setIsDraggedOver] = createSignal(false);
     const [isProcessing, setIsProcessing] = createSignal(false);
+    let unlistenFileDrop: Function | null = null;
 
-    const handleDragOver = (e: DragEvent) => {
+    async function handleDragOver(e: DragEvent) {
         e.preventDefault();
 
-        if (!isDraggedOver()) setIsDraggedOver(true);
-    };
+        if (!unlistenFileDrop) {
+            // unlistenFileDrop = await appWindow.onFileDropEvent(
+            //     async ({ payload }) => {
+            //         console.log(payload);
 
-    const handleDragLeave = (e: DragEvent) => {
+            //         // console.log({ entries });
+            //     }
+            // );
+            unlistenFileDrop = await listen(
+                'tauri://file-drop',
+                async ({ payload }) => {
+                    console.log(payload);
+                    const entries = await readDir('users', {
+                        dir: BaseDirectory.AppData,
+                        recursive: true
+                    });
+
+                    console.log({ entries });
+                }
+            );
+        }
+
+        if (!isDraggedOver()) {
+            setIsDraggedOver(true);
+        }
+    }
+
+    async function handleDragLeave(e: DragEvent) {
         e.preventDefault();
 
         setIsDraggedOver(false);
-    };
+    }
 
-    const handleDrop = async (e: DragEvent) => {
-        console.log('handleDrop ?');
+    async function handleDrop(e: DragEvent) {
         e.preventDefault();
 
-        console.log('handleDrop');
-
         const { items } = e.dataTransfer || {};
-
-        console.log({ items })
 
         if (!items) return;
 
@@ -99,20 +165,22 @@ const FileDrop: ParentComponent<Props> = (props) => {
             /* TODO: Filter unsupported file types */
             const filteredEntries = [];
 
-            console.log({ entries });
-
-            // setIsProcessing(true);
+            setIsProcessing(true);
 
             // for (const entry of entries) {
             //     const { path, type } = await getFileFromEntry(entry);
 
+            //     const source = `file://${path}`;
+
             //     if (type.startsWith('audio/')) {
             //         filteredEntries.push({
-            //             ...(await window.electron.getFileMetadata(path)),
-            //             source: `file://${path}`
+            //             ...(await getFileMetadata(source)),
+            //             source
             //         });
             //     }
             // }
+
+            console.log({ filteredEntries });
 
             setIsProcessing(false);
 
@@ -120,7 +188,7 @@ const FileDrop: ParentComponent<Props> = (props) => {
         }
 
         setIsDraggedOver(false);
-    };
+    }
 
     return (
         <div
@@ -156,7 +224,7 @@ const FileDrop: ParentComponent<Props> = (props) => {
                                 />
 
                                 <p class="text-primary-100">
-                                    Processing metadata...
+                                    Fetching metadata...
                                 </p>
                             </Show>
                         </div>

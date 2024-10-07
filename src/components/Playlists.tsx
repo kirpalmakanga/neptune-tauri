@@ -23,7 +23,7 @@ const Playlists: Component = () => {
 
     return (
         <header class="flex flex-col w-xs bg-primary-800 font-secondary">
-            <div class="flex gap-3 justify-between items-center font-bold p-3">
+            <div class="flex gap-3 justify-between items-center p-3">
                 <h2 class="text-primary-100">Playlists</h2>
 
                 <Button
@@ -44,7 +44,7 @@ const Playlists: Component = () => {
                                     activeClass="bg-primary-700 hover:bg-primary-700"
                                     href={`/playlist/${playlist.id}`}
                                 >
-                                    <span class="text-sm font-bold overflow-ellipsis">
+                                    <span class="text-sm overflow-ellipsis">
                                         {playlist.title}
                                     </span>
 

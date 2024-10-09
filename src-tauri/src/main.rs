@@ -1,9 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::fs;
-use std::fs::Metadata;
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
+use std::io::Write;
 use std::path::Path;
+use audiotags::Picture;
+use audiotags::Tag;
+use uuid::Uuid;
 use walkdir::WalkDir;
 use walkdir::DirEntry;
 use serde::{Serialize, Deserialize};
@@ -22,19 +26,62 @@ fn is_hidden(entry: &DirEntry) -> bool {
     .unwrap_or(false)
 }
 
-const ALLOWED_FILE_EXTENSIONS: [&str; 8] = ["aiff", "flac", "m4a", "mid", "mp3", "mp4", "ogg", "wav"];
+const ALLOWED_FILE_EXTENSIONS: [&str; 6] = ["aiff", "flac", "m4a", "mp3", "mp4", "wav"];
 
-// fn is_allowed_mime_type(path: String) -> bool {
-//   ALLOWED_FILE_EXTENSIONS.contains(Path::new(&path).extension().and_then(OsStr::to_str).unwrap())
-// }
+fn is_allowed_mime_type(path: String) -> bool {
+  let extension = Path::new(&path).extension().unwrap().to_str().unwrap();
 
-fn get_file_metadata(path: String) -> Metadata {
-  let metadata = match fs::metadata(path) {
-      Ok(data) => data,
-      Err(error) => panic!("Problem fetching metadata: {error:?}")
+  ALLOWED_FILE_EXTENSIONS.contains(&extension)
+}
+
+fn buffer_to_b64(buffer: &[u8]) -> String {
+  let mut bytes: Vec<u8> = Vec::new();
+
+  let _ = bytes.write(buffer);
+
+  BASE64_STANDARD.encode(bytes)
+}
+
+fn encode_album_cover(picture: Picture) -> String {
+  let encoded_image :String = buffer_to_b64(picture.data);
+  let mime_type: String = picture.mime_type.try_into().unwrap();
+
+  format!("data:{mime_type};base64,{encoded_image}")
+}
+
+fn get_file_metadata(path: String) -> Track {
+  let source = path.clone();
+  let tags = Tag::new().read_from_path(path).unwrap();
+
+  let track  = Track {
+      id: Uuid::new_v4().to_string(),
+      title: tags.title().unwrap().to_string(),
+      album_title: match tags.album() {
+          Some(a) => a.title.to_string(),
+          None => "".to_string()
+      },
+      artists: match tags.artists() {
+          Some(arr) => arr.join(","),
+          None => "".to_string()
+      },
+      album_artists: match tags.album_artists() {
+          Some(arr) => arr.join(","),
+          None => "".to_string()
+      },
+      genre: tags.genre().unwrap_or_else(|| "").to_string(),
+      duration: tags.duration().unwrap_or_else(|| 0.0),
+      track_number: tags.track_number().unwrap_or_else(|| 0),
+      disc_number: tags.disc_number().unwrap_or_else(|| 0),
+      source: source,
+      year: tags.year().unwrap_or_else(|| 0),
+      cover: match tags.album_cover() {
+          Some(a) => encode_album_cover(a),
+          None => "".to_string()
+      }
   };
 
-  metadata
+  track
+  // metadata
 }
 
 
@@ -43,27 +90,33 @@ fn get_file_metadata(path: String) -> Metadata {
 struct Track {
   id: String,
   title: String,
+  album_title: String,
   artists: String,
   album_artists: String,
-  album: String,
   genre: String,
-  duration: u16,
+  duration: f64,
   track_number: u16,
-  disc_number: String,
+  disc_number: u16,
   source: String,
-  year: u16,
+  year: i32,
   cover: String
 }
 
 #[tauri::command]
-fn get_tracks(paths: Vec<String>) -> Vec<Metadata> {
+fn get_tracks(paths: Vec<String>) -> Vec<Track> {
 // fn get_tracks(paths: Vec<String>) -> Vec<Track> {
   let mut file_paths: Vec<String> = Vec::new();
-  let mut tracks: Vec<Metadata> = Vec::new();
+  let mut tracks: Vec<Track> = Vec::new();
 
   for path in paths {
     if Path::new(&path).is_dir() {
-      //TODO: add is_dir(entry) filter properly
+      /**
+       * TODO:
+       * -add is_dir(entry) filter properly
+       * -
+       *
+       *
+      */
       for entry in WalkDir::new(path).into_iter().filter_entry(|e| !is_hidden(e)) {
         let file_path = match entry {
             Ok(entry) => entry.path().to_str().unwrap().to_string(),

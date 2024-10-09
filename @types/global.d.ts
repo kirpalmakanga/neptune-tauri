@@ -12,9 +12,9 @@ declare global {
     interface Track {
         id: string;
         title: string;
+        albumTitle: string;
         artists: string;
         albumArtists: string;
-        album: string;
         genre: string;
         duration: number;
         trackNumber: number;

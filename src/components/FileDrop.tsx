@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api';
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { createSignal, ParentComponent, Show } from 'solid-js';
 import { Transition } from 'solid-transition-group';
@@ -18,25 +18,19 @@ const FileDrop: ParentComponent<Props> = (props) => {
         e.preventDefault();
 
         if (!unlistenFileDrop) {
-            // unlistenFileDrop = await appWindow.onFileDropEvent(
-            //     async ({ payload }) => {
-            //         console.log(payload);
-
-            //         // console.log({ entries });
-            //     }
-            // );
             unlistenFileDrop = await listen(
-                'tauri://file-drop',
-                async ({ payload: paths }) => {
+                'tauri://drag-drop',
+                async ({ payload: { paths } }) => {
                     console.log(paths);
 
                     const tracks = await invoke('get_tracks', { paths });
 
                     console.log({ tracks });
 
-                    // props.onDropFiles(tracks as Track[]);
+                    props.onDropFiles(tracks as Track[]);
                 }
             );
+            console.log('inited');
         }
 
         if (!isDraggedOver()) {
@@ -46,6 +40,8 @@ const FileDrop: ParentComponent<Props> = (props) => {
 
     async function handleDragLeave(e: DragEvent) {
         e.preventDefault();
+
+        // unlistenFileDrop?.();
 
         setIsDraggedOver(false);
     }
@@ -59,38 +55,36 @@ const FileDrop: ParentComponent<Props> = (props) => {
         >
             {props.children}
 
-            <Transition name="fade">
-                <Show when={isDraggedOver()}>
-                    <div class="absolute inset-0 bg-primary-800 bg-opacity-50 flex p-2">
-                        <div class="flex flex-col flex-grow justify-center items-center border-2 border-dashed border-primary-100 border-opacity-50 rounded">
-                            <Show
-                                when={isProcessing()}
-                                fallback={
-                                    <>
-                                        <Icon
-                                            class="w-12 h-12 text-primary-100"
-                                            name="file-add"
-                                        />
+            {/* <Transition name="fade"> */}
+            <Show when={isDraggedOver()}>
+                <div class="absolute inset-0 bg-primary-800 bg-opacity-50 flex p-2">
+                    <div class="flex flex-col flex-grow justify-center items-center border-2 border-dashed border-primary-100 border-opacity-50 rounded">
+                        <Show
+                            when={isProcessing()}
+                            fallback={
+                                <>
+                                    <Icon
+                                        class="w-12 h-12 text-primary-100"
+                                        name="file-add"
+                                    />
 
-                                        <p class="text-primary-100">
-                                            Drop files here.
-                                        </p>
-                                    </>
-                                }
-                            >
-                                <Icon
-                                    class="w-12 h-12 text-primary-100"
-                                    name="loading"
-                                />
+                                    <p class="text-primary-100">
+                                        Drop files here.
+                                    </p>
+                                </>
+                            }
+                        >
+                            <Icon
+                                class="w-12 h-12 text-primary-100"
+                                name="loading"
+                            />
 
-                                <p class="text-primary-100">
-                                    Fetching metadata...
-                                </p>
-                            </Show>
-                        </div>
+                            <p class="text-primary-100">Fetching metadata...</p>
+                        </Show>
                     </div>
-                </Show>
-            </Transition>
+                </div>
+            </Show>
+            {/* </Transition> */}
         </div>
     );
 };

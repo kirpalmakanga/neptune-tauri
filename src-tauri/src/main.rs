@@ -50,7 +50,7 @@ fn encode_album_cover(picture: Picture) -> String {
 }
 
 fn get_file_metadata(path: String) -> Track {
-  let source = path.clone();
+  let source = format!("file://{path}");
   let tags = Tag::new().read_from_path(path).unwrap();
 
   let track  = Track {

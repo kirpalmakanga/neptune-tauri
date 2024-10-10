@@ -5,33 +5,41 @@ import {
     ParentComponent
 } from 'solid-js';
 import { createStore, SetStoreFunction, Store } from 'solid-js/store';
-import { createLocalStorage } from '@solid-primitives/storage';
+import { makePersisted } from '@solid-primitives/storage';
 import { rootInitialState, RootState } from './_state';
+import {
+    initialState as getInitialPlayerState,
+    PlayerState
+} from './player/_state';
+import {
+    initialState as getInitialPlaylistsState,
+    PlaylistsState
+} from './playlists/_state';
 import { mergeDeep } from '../utils/helpers';
 
 const StoreContext = createContext();
 
-const storageKey = 'neptune';
-
 export const StoreProvider: ParentComponent = (props) => {
-    const [storage, setStorage] = createLocalStorage();
+    const [storage, setStorage] = makePersisted(
+        createStore<{ player: PlayerState; playlists: PlaylistsState }>({
+            player: getInitialPlayerState(),
+            playlists: getInitialPlaylistsState()
+        }),
+        {
+            name: 'neptune'
+        }
+    );
     const store = createStore<RootState>(
-        mergeDeep(
-            rootInitialState(),
-            JSON.parse(storage[storageKey]) || {}
-        ) as RootState
+        mergeDeep(rootInitialState(), storage) as RootState
     );
 
     createEffect(() => {
         const [{ playlists, player }] = store;
 
-        setStorage(
-            storageKey,
-            JSON.stringify({
-                playlists,
-                player
-            })
-        );
+        setStorage({
+            playlists,
+            player
+        });
     });
 
     return (

@@ -110,13 +110,7 @@ fn get_tracks(paths: Vec<String>) -> Vec<Track> {
 
   for path in paths {
     if Path::new(&path).is_dir() {
-      /**
-       * TODO:
-       * -add is_dir(entry) filter properly
-       * -
-       *
-       *
-      */
+      // TODO: -add is_dir(entry) filter properly
       for entry in WalkDir::new(path).into_iter().filter_entry(|e| !is_hidden(e)) {
         let file_path = match entry {
             Ok(entry) => entry.path().to_str().unwrap().to_string(),

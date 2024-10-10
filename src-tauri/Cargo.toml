@@ -10,17 +10,18 @@ edition = "2021"
 rust-version = "1.60"
 
 [build-dependencies]
-tauri-build = { version = "1.5.1", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
 serde_json = "1.0.128"
 serde = { version = "1.0.210", features = ["derive"] }
-tauri = { version = "1.5.4", features = [] }
+tauri = { version = "2", features = [] }
+tauri-macros = "2.0.1"
 walkdir = "2"
 mime_guess = "2.0.5"
 symphonia-metadata = "0.5.4"
 audiotags = "0.5.0"
-uuid = "1.10.0"
+uuid = { version = "1.10.0", features = ["v4"] }
 base64 = "0.22.1"
 
 [features]

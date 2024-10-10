@@ -51,22 +51,17 @@ export const usePlaylists = () => {
 
         if (!playlist) throw new Error(`This playlist doesn't exist`);
 
-        /* TODO: if item exists: update object */
+        if (items.length) {
+            const { items: currentItems } = playlist;
 
-        const { items: currentItems = [] } = playlist;
-        const currentSources = currentItems.map(({ source }) => source);
-        const newItems = items.filter(
-            ({ source }) => !currentSources.includes(source)
-        );
-
-        if (newItems.length)
             setState(
                 'playlists',
                 'items',
                 ({ id }) => id === targetPlaylistId,
                 'items',
-                [...currentItems, ...newItems]
+                [...currentItems, ...items]
             );
+        }
     };
 
     return [

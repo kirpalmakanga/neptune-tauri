@@ -3,6 +3,7 @@
 
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use urlencoding::encode;
 use std::io::Write;
 use std::path::Path;
 use audiotags::Picture;
@@ -83,14 +84,13 @@ fn get_file_metadata(path: String) -> Track {
       duration: tags.duration().unwrap_or_else(|| 0.0),
       track_number: tags.track_number().unwrap_or_else(|| 0),
       disc_number: tags.disc_number().unwrap_or_else(|| 0),
-      source: source,
+      source: encode(source.as_str()).to_string(),
       year: tags.year().unwrap_or_else(|| 0),
       cover: match tags.album_cover() {
           Some(a) => encode_album_cover(a),
           None => "".to_string()
       }
   };
-
   track
 }
 

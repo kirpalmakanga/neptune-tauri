@@ -70,7 +70,6 @@ dependencies = [
  "base64 0.22.1",
  "mime_guess",
  "serde",
- "serde_json",
  "symphonia-metadata",
  "tauri",
  "tauri-build",

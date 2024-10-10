@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { Event, listen } from '@tauri-apps/api/event';
 import { createSignal, ParentComponent, Show } from 'solid-js';
 import { Transition } from 'solid-transition-group';
 
@@ -20,17 +20,18 @@ const FileDrop: ParentComponent<Props> = (props) => {
         if (!unlistenFileDrop) {
             unlistenFileDrop = await listen(
                 'tauri://drag-drop',
-                async ({ payload: { paths } }) => {
-                    console.log(paths);
+                async ({ payload: { paths } }: Event<{ paths: string[] }>) => {
+                    setIsProcessing(true);
 
-                    const tracks = await invoke('get_tracks', { paths });
+                    const tracks = await invoke<Track[]>('get_tracks', {
+                        paths
+                    });
 
-                    console.log({ tracks });
+                    setIsProcessing(false);
 
-                    props.onDropFiles(tracks as Track[]);
+                    props.onDropFiles(tracks);
                 }
             );
-            console.log('inited');
         }
 
         if (!isDraggedOver()) {
@@ -41,7 +42,9 @@ const FileDrop: ParentComponent<Props> = (props) => {
     async function handleDragLeave(e: DragEvent) {
         e.preventDefault();
 
-        // unlistenFileDrop?.();
+        unlistenFileDrop?.();
+
+        unlistenFileDrop = null;
 
         setIsDraggedOver(false);
     }
@@ -51,40 +54,41 @@ const FileDrop: ParentComponent<Props> = (props) => {
             class="relative flex flex-col flex-grow"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            // onDrop={handleDrop}
         >
             {props.children}
 
-            {/* <Transition name="fade"> */}
-            <Show when={isDraggedOver()}>
-                <div class="absolute inset-0 bg-primary-800 bg-opacity-50 flex p-2">
-                    <div class="flex flex-col flex-grow justify-center items-center border-2 border-dashed border-primary-100 border-opacity-50 rounded">
-                        <Show
-                            when={isProcessing()}
-                            fallback={
-                                <>
-                                    <Icon
-                                        class="w-12 h-12 text-primary-100"
-                                        name="file-add"
-                                    />
+            <Transition name="fade">
+                <Show when={isDraggedOver() || isProcessing()}>
+                    <div class="absolute inset-0 bg-primary-800 bg-opacity-50 flex p-2 pointer-events-none">
+                        <div class="flex flex-col flex-grow justify-center items-center border-2 border-dashed border-primary-100 border-opacity-50 rounded">
+                            <Show
+                                when={isProcessing()}
+                                fallback={
+                                    <>
+                                        <Icon
+                                            class="w-12 h-12 text-primary-100"
+                                            name="file-add"
+                                        />
 
-                                    <p class="text-primary-100">
-                                        Drop files here.
-                                    </p>
-                                </>
-                            }
-                        >
-                            <Icon
-                                class="w-12 h-12 text-primary-100"
-                                name="loading"
-                            />
+                                        <p class="text-primary-100">
+                                            Drop files here.
+                                        </p>
+                                    </>
+                                }
+                            >
+                                <Icon
+                                    class="w-12 h-12 text-primary-100"
+                                    name="loading"
+                                />
 
-                            <p class="text-primary-100">Fetching metadata...</p>
-                        </Show>
+                                <p class="text-primary-100">
+                                    Fetching tracks' metadata...
+                                </p>
+                            </Show>
+                        </div>
                     </div>
-                </div>
-            </Show>
-            {/* </Transition> */}
+                </Show>
+            </Transition>
         </div>
     );
 };

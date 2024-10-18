@@ -21,7 +21,7 @@ const defaultTrack: Track = {
     title: 'N/A',
     artists: 'N/A',
     albumArtists: '',
-    album: '',
+    albumTitle: '',
     genre: '',
     duration: 0,
     trackNumber: 0,

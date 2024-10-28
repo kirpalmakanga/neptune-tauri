@@ -1,17 +1,13 @@
-export const preventDefault =
-    (func = (e: Event) => {}) =>
-    (e: Event) => {
-        e.preventDefault();
+export const preventDefault = (func?: (e: Event) => void) => (e: Event) => {
+    e.preventDefault();
 
-        func(e);
-    };
+    func && func(e);
+};
 
-export const stopPropagation =
-    (func = (e: Event) => {}) =>
-    (e: Event) => {
-        e.stopPropagation();
-        func && func(e);
-    };
+export const stopPropagation = (func?: (e: Event) => void) => (e: Event) => {
+    e.stopPropagation();
+    func && func(e);
+};
 
 export const delay = (t: number) =>
     new Promise((resolve) => setTimeout(resolve, t));

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { Event, listen } from '@tauri-apps/api/event';
 import { createSignal, ParentComponent, Show } from 'solid-js';
 import { Transition } from 'solid-transition-group';
@@ -26,10 +26,18 @@ const FileDrop: ParentComponent<Props> = (props) => {
                     const tracks = await invoke<Track[]>('get_tracks', {
                         paths
                     });
+                    const convertedTracks = await Promise.all(
+                        tracks.map(async ({ source, ...data }) => ({
+                            ...data,
+                            source: encodeURI(
+                                await convertFileSrc(source.replace('/', ''))
+                            )
+                        }))
+                    );
 
                     setIsProcessing(false);
 
-                    props.onDropFiles(tracks);
+                    props.onDropFiles(convertedTracks);
                 }
             );
         }

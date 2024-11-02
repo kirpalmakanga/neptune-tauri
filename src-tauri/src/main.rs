@@ -62,8 +62,7 @@ struct Track {
 }
 
 fn get_file_metadata(path: String) -> Track {
-  let source = format!("file://{path}");
-  let tags = Tag::new().read_from_path(path).unwrap();
+  let tags = Tag::new().read_from_path(path.clone()).unwrap();
 
   let track  = Track {
       id: Uuid::new_v4().to_string(),
@@ -84,7 +83,7 @@ fn get_file_metadata(path: String) -> Track {
       duration: tags.duration().unwrap_or_else(|| 0.0),
       track_number: tags.track_number().unwrap_or_else(|| 0),
       disc_number: tags.disc_number().unwrap_or_else(|| 0),
-      source: encode(source.as_str()).to_string(),
+      source: path.clone(),
       year: tags.year().unwrap_or_else(|| 0),
       cover: match tags.album_cover() {
           Some(a) => encode_album_cover(a),

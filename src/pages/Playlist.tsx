@@ -96,7 +96,7 @@ const Playlist: Component = () => {
                     component={(props: { data: Playlist }) => (
                         <>
                             <header class="flex justify-between items-center p-3 bg-primary-600">
-                                <h1 class="font-bold text-primary-100 text-primary-100 font-secondary">
+                                <h1 class="text-primary-100 text-primary-100 font-secondary">
                                     {props.data.title}
                                 </h1>
 

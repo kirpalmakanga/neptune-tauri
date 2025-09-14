@@ -4,5 +4,13 @@
     "description": "permissions that were migrated from v1",
     "local": true,
     "windows": ["main"],
-    "permissions": ["core:default"]
+    "permissions": [
+        "core:default",
+        "fs:default",
+        "fs:read-all",
+        {
+            "identifier": "fs:scope",
+            "allow": [{ "path": "**/*" }]
+        }
+    ]
 }

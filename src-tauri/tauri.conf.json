@@ -56,9 +56,7 @@
             }
         ],
         "security": {
-            "csp": {
-                "media-src": "'self' asset: http://asset.localhost"
-            },
+            "csp": null,
             "assetProtocol": {
                 "enable": true,
                 "scope": ["$HOME"]

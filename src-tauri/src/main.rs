@@ -3,7 +3,6 @@
 
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
-use urlencoding::encode;
 use std::io::Write;
 use std::path::Path;
 use audiotags::Picture;
@@ -16,6 +15,58 @@ use serde::{Serialize, Deserialize};
 fn main() {
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![get_tracks])
+    .register_uri_scheme_protocol("asset", |_ctx, request| {
+        let cleaned_path = percent_encoding::percent_decode_str(&request.uri().path())
+            .decode_utf8()
+            .unwrap()
+            .as_bytes()[1..]
+            .to_vec();
+
+        let path_string = String::from_utf8(cleaned_path).unwrap_or_default();
+        let path = std::path::Path::new(&path_string);
+        match std::fs::read(path) {
+            Ok(data) => {
+                let content_type = if let Some(ext) = path.extension() {
+                    if let Some(ext) = ext.to_str() {
+                        match ext.to_lowercase().as_str() {
+                            "aiff" => "audio/aiff",
+                            "flac"=> "audio/flac",
+                            "m4a" => "audio/aac",
+                            "mp3" => "audio/mpeg",
+                            "mp4" => "audio/mp4",
+                            "wav" => "audio/wav",
+                            "jpg" | "jpeg" => "image/jpeg",
+                            "png" => "image/png",
+                            "gif" => "image/gif",
+                            "webp" => "image/webp",
+                            "bmp" => "image/bmp",
+                            "ico" => "image/x-icon",
+                            "svg" => "image/svg+xml",
+                            _ => "image/*"
+                        }
+                    } else {
+                        "image/*" 
+                    }
+                } else {
+                    "image/*" 
+                };
+
+                return tauri::http::Response::builder()
+                    .status(200)
+                    .header(tauri::http::header::CONTENT_TYPE, content_type)
+                    .body(data)
+                    .unwrap();
+            }
+            Err(e) => {
+                println!("error: {}", e.to_string());
+                return tauri::http::Response::builder()
+                    .status(200)
+                    .header(tauri::http::header::CONTENT_TYPE, "text/plain")
+                    .body("failed to read file".as_bytes().to_vec())
+                    .unwrap();
+            }
+        }
+    })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
@@ -43,6 +94,14 @@ fn encode_album_cover(picture: Picture) -> String {
   format!("data:{mime_type};base64,{encoded_image}")
 }
 
+fn get_file_name(path: String) -> String {
+  let p = &path;
+  let path = Path::new(p);
+  let filename = path.file_stem().unwrap().to_str().unwrap().to_string();
+
+  filename
+}
+
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,7 +125,10 @@ fn get_file_metadata(path: String) -> Track {
 
   let track  = Track {
       id: Uuid::new_v4().to_string(),
-      title: tags.title().unwrap().to_string(),
+      title: match tags.title() {
+        Some(t)=> t.to_string(),
+        None=> get_file_name(path.clone())
+      },
       album_title: match tags.album() {
           Some(a) => a.title.to_string(),
           None => "".to_string()
